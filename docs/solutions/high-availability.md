@@ -2,7 +2,9 @@
 
 PostgreSQL has been widely adopted as a modern, high-performance transactional database. A highly available PostgreSQL cluster can withstand failures caused by network outages, resource saturation, hardware failures, operating system crashes or unexpected reboots. Such cluster is often a critical component of the enterprise application landscape, where [four nines of availability :octicons-link-external-16:](https://en.wikipedia.org/wiki/High_availability#Percentage_calculation) is a minimum requirement. 
 
-There are several methods to achieve high availability in PostgreSQL. This solution document provides [Patroni](#patroni) - the open-source extension to facilitate and manage the deployment of high availability in PostgreSQL.
+There are several methods to achieve high availability in PostgreSQL. In this solution document we recommend the architecture using [Patroni](#patroni) - an open-source tool that automates the deployment of high availability in PostgreSQL using a distributed configuration store like etcd, Consul, ZooKeeper and Kubernetes. 
+
+We'll use [etcd :octicons-link-external-16:](https://etcd.io/docs/v3.3/learning/why/) as the most popular and preferred configuration store due to its simplicity, strong consistency, and reliability. We'll also add [`pgBackRest` :octicons-link-external-16:](https://pgbackrest.org/) - a reliable, easy-to-use backup and restore solution that can seamlessly scale up to the largest databases and workloads by utilizing algorithms that are optimized for database-specific requirements.
 
 ??? admonition "High availability methods"
 
@@ -70,6 +72,7 @@ The following diagram shows the architecture of a three-node PostgreSQL cluster 
 The components in this architecture are:
 
 - PostgreSQL nodes 
+
 - Patroni - a template for configuring a highly available PostgreSQL cluster.
 
 - etcd - a Distributed Configuration store that stores the state of the PostgreSQL cluster. 
@@ -82,7 +85,7 @@ The components in this architecture are:
 
 ### How components work together
 
-Each PostgreSQL instance in the cluster maintains consistency with other members through streaming replication. Each instance hosts Patroni - a cluster manager that monitors the cluster health. Patroni relies on the operational etcd cluster to store the cluster configuration and sensitive data about the cluster health there. 
+Each PostgreSQL instance in the cluster maintains consistency with other members through streaming replication. Each instance hosts Patroni - a cluster manager that monitors the cluster health. Patroni relies on the operational etcd cluster where it stores the cluster configuration and sensitive data about the cluster health. 
 
 Patroni periodically sends heartbeat requests with the cluster status to etcd. etcd writes this information to disk and sends the response back to Patroni. If the current primary fails to renew its status as leader within the specified timeout, Patroni updates the state change in etcd, which uses this information to elect the new primary and keep the cluster up and running.
 
