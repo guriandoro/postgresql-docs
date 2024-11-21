@@ -1,100 +1,62 @@
 # High Availability in PostgreSQL with Patroni
 
-PostgreSQL has been widely adopted as a modern, high-performance transactional database. A highly available PostgreSQL cluster can withstand failures caused by network outages, resource saturation, hardware failures, operating system crashes or unexpected reboots. Such cluster is often a critical component of the enterprise application landscape, where [four nines of availability :octicons-link-external-16:](https://en.wikipedia.org/wiki/High_availability#Percentage_calculation) is a minimum requirement. 
+Regardless whether you are a small startup or a big enterprise, a downtime of your services may cause severe consequences like loss of customers, impact on your reputation, and penalties for not meeting the  Service Level Agreements (SLAs). That’s why ensuring that your deployment operates without disruption is crucial.
 
-There are several methods to achieve high availability in PostgreSQL. In this solution document we recommend the architecture using [Patroni](#patroni) - an open-source tool that automates the deployment of high availability in PostgreSQL using a distributed configuration store like etcd, Consul, ZooKeeper and Kubernetes. 
+In this solution document you will find the following:
 
-We'll use [etcd :octicons-link-external-16:](https://etcd.io/docs/v3.3/learning/why/) as the most popular and preferred configuration store due to its simplicity, strong consistency, and reliability. We'll also add [`pgBackRest` :octicons-link-external-16:](https://pgbackrest.org/) - a reliable, easy-to-use backup and restore solution that can seamlessly scale up to the largest databases and workloads by utilizing algorithms that are optimized for database-specific requirements.
+* the [technical overview](#technical-overview) of high availability; 
+* the [reference architecture](ha-architecture.md) that we recommend to achieve high availability
+* the [step-by-step deployment guide](ha-setup-apt.md). The guide focuses on the minimalist approach to HA. It also gives instructions how to deploy additional components that you can add when your infrastructure grows.
+* The [testing guidelines](ha-test.md) on how to verify that your high availability works as expected, providing replication and failover.
 
-??? admonition "High availability methods"
+## Technical overview
 
-    There are several native methods for achieving high availability with PostgreSQL:
+High availability is the ability of the system to operate continuously without the interruption of services. During the outage, the system must be able to fail over the services from a primary database node that is down to one of the standby nodes within a cluster. For the standby nodes to always be up to date with the primary, there must be a replication mechanism between them.
 
-    - shared disk failover, 
-    - file system replication, 
-    - trigger-based replication, 
-    - statement-based replication, 
-    - logical replication, 
-    - Write-Ahead Log (WAL) shipping, and
-    - [streaming replication](#streaming-replication)
+To break it down, achieving high availability means to put these principles in practice:
 
+* **Single point of failure (SPOF)** – Eliminate any single point of failure in the database environment, including the physical or virtual hardware the database system relies on and which would cause it to fail.
+* **Redundancy** – Ensure sufficient redundancy of all components within the database environment and reliable crossover to these components in the event of failure.
+* **Failure detection** – Monitor the entire database environment for failures.
 
-    ## Streaming replication
+??? information "Measuring high availability"
 
-    Streaming replication is part of Write-Ahead Log shipping, where changes to the WALs are immediately made available to standby replicas. With this approach, a standby instance is always up-to-date with changes from the primary node and can assume the role of primary in case of a failover.
+    The need for high availability is determined by the business requirements, potential risks, and operational limitations. The level of high availability depends on how much downtime you can bear without negatively impacting your users and how much data loss you can tolerate during the system outage.
 
+    The measurement of availability is done by establishing a measurement time frame and dividing it by the time that it was available. This ratio will rarely be one, which is equal to 100% availability. At Percona, we don’t consider a solution to be highly available if it is not at least 99% or two nines available.
 
-    ### Why native streaming replication is not enough
+    The following table shows the amount of downtime for each level of availability from two to five nines.
 
-    Although the native streaming replication in PostgreSQL supports failing over  to the primary node, it lacks some key features expected from a truly highly-available solution. These include:
+    | Availability %       | Downtime per year | Downtime per month | Downtime per week | Downtime per day  |
+    |----------------------|-------------------|--------------------|-------------------|-------------------|
+    | 99% (“two nines”)    | 3.65 days         | 7.31 hours         | 1.68 hours        | 14.40 minutes     |
+    | 99.5% (“two nines five”) | 1.83 days         | 3.65 hours         | 50.40 minutes     | 7.20 minutes      |
+    | 99.9% (“three nines”) | 8.77 hours        | 43.83 minutes      | 10.08 minutes     | 1.44 minutes      |
+    | 99.95% (“three nines five”) | 4.38 hours        | 21.92 minutes      | 5.04 minutes      | 43.20 seconds     |
+    | 99.99% (“four nines”) | 52.60 minutes     | 4.38 minutes       | 1.01 minutes      | 8.64 seconds      |
+    | 99.995% (“four nines five”) | 26.30 minutes     | 2.19 minutes       | 30.24 seconds     | 4.32 seconds      |
+    | 99.999% (“five nines”) | 5.26 minutes      | 26.30 seconds      | 6.05 seconds      | 864.00 milliseconds |
+    
 
+## Ways to achieve high availability in PostgreSQL
 
-    * No consensus-based promotion of a “leader” node during a failover
-    * No decent capability for monitoring cluster status 
-    * No automated way to bring back the failed primary node to the cluster
-    * A manual or scheduled switchover is not easy to manage 
+To achieve high availability you should have the following:
 
-    To address these shortcomings, there are a multitude of third-party, open-source extensions for PostgreSQL. The challenge for a database administrator here is to select the right utility for the current scenario. 
+* **Replication** to ensure the standby nodes continuously receive updates from the primary and are in sync with it. Consider using **streaming replication** where a standby node connects to its primary and continuously receives a stream of WAL records as they’re generated. The configuration of both primary and standbys must be the same. 
+* **Failover** to eliminate the single point of failure by promoting one of the standbys to become primary when the initial primary node is down. To minimize the time it takes to promote a new primary, the failover must be automatic. 
 
-    Percona Distribution for PostgreSQL solves this challenge by providing the [Patroni :octicons-link-external-16:](https://patroni.readthedocs.io/en/latest/) extension for achieving PostgreSQL high availability.
+    The tool of choice for failover is **Patroni** as it monitors the state and health of the cluster and takes care of the failover procedure if there’s an outage. Patroni relies on the distributed configuration store (DCS) that stores the cluster configuration, health and status. We recommend and use etcd as the DCS for Patroni due to its simplicity, consistency and reliability. Etcd not only stores the cluster data, it also handles the election of a new primary node (a leader in ETCD terminology).
 
-## Patroni
+* **Backup and recovery solution** to protect your environment against data loss and ensure quick service restoration. **pgBackRest** is a robust, reliable solution for Backup and Continuous WAL Archiving. 
+* **Monitoring** to ensure that each node and the whole PostgreSQL cluster perform effectively. We suggest
+using Percona Monitoring and Management (PMM), a fast, customizable, and reliable monitoring tool.
 
-[Patroni :octicons-link-external-16:](https://patroni.readthedocs.io/en/latest/) is a template for you to create your own customized, high-availability solution using Python and - for maximum accessibility - a distributed configuration store like ZooKeeper, etcd, Consul or Kubernetes. 
-
-### Key benefits of Patroni:
-
-* Continuous monitoring and automatic failover
-* Manual/scheduled switchover with a single command
-* Built-in automation for bringing back a failed node to cluster again.
-* REST APIs for entire cluster configuration and further tooling.
-* Provides infrastructure for transparent application failover
-* Distributed consensus for every action and configuration.
-* Integration with Linux watchdog for avoiding split-brain syndrome.
-
-
-!!! admonition "See also"
-
-    - [Patroni documentation :octicons-link-external-16:](https://patroni.readthedocs.io/en/latest/SETTINGS.html#settings)
-
-    - Percona Blog: 
-
-        - [PostgreSQL HA with Patroni: Your Turn to Test Failure Scenarios :octicons-link-external-16:](https://www.percona.com/blog/2021/06/11/postgresql-ha-with-patroni-your-turn-to-test-failure-scenarios/) 
-
-## Architecture layout
-
-The following diagram shows the architecture of a three-node PostgreSQL cluster with a single-leader node. 
-
-![Architecture of the three-node, single primary PostgreSQL cluster](../_images/diagrams/ha-architecture-patroni.png)
-
-### Components
-
-The components in this architecture are:
-
-- PostgreSQL nodes 
-
-- Patroni - a template for configuring a highly available PostgreSQL cluster.
-
-- etcd - a Distributed Configuration store that stores the state of the PostgreSQL cluster. 
-
-- HAProxy - the load balancer for the cluster and is the single point of entry to client applications. 
-
-- pgBackRest - the backup and restore solution for PostgreSQL
-
-- Percona Monitoring and Management (PMM) - the solution to monitor the health of your cluster 
-
-### How components work together
-
-Each PostgreSQL instance in the cluster maintains consistency with other members through streaming replication. Each instance hosts Patroni - a cluster manager that monitors the cluster health. Patroni relies on the operational etcd cluster where it stores the cluster configuration and sensitive data about the cluster health. 
-
-Patroni periodically sends heartbeat requests with the cluster status to etcd. etcd writes this information to disk and sends the response back to Patroni. If the current primary fails to renew its status as leader within the specified timeout, Patroni updates the state change in etcd, which uses this information to elect the new primary and keep the cluster up and running.
-
-The connections to the cluster do not happen directly to the database nodes but are routed via a connection proxy like HAProxy. This proxy determines the active node by querying the Patroni REST API.
+In the [reference architecture](ha-architecture.md) section we give the recommended combination of open-source tools to achieve high availability in PostgreSQL. We focus on the minimalist deployment with three-node PostgreSQL cluster.
 
 
 
 ## Next steps
 
-[Deploy on Debian or Ubuntu](ha-setup-apt.md){.md-button}
-[Deploy on RHEL or derivatives](ha-setup-yum.md){.md-button}
+[Architecture](ha-architecture.md){.md-button}
+
 
