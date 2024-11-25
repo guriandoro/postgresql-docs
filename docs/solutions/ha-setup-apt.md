@@ -31,7 +31,7 @@ It’s not necessary to have name resolution, but it makes the whole setup more 
 1. Run the following command on each node. Change the node name to `node1`, `node2` and `node3` respectively:
 
     ```{.bash data-prompt="$"}
-    $ sudo hostnamectl set-hostname node-1
+    $ sudo hostnamectl set-hostname node1
     ```
 
 2. Modify the `/etc/hosts` file of each PostgreSQL node to include the hostnames and IP addresses of the remaining nodes. Add the following at the end of the `/etc/hosts` file on all nodes:
@@ -78,11 +78,14 @@ It’s not necessary to have name resolution, but it makes the whole setup more 
 
 ### Install the software
 
+
 Run the following commands on `node1`, `node2` and `node3`:
 
 1. Install Percona Distribution for PostgreSQL
     
-    * [Install `percona-release` :octicons-link-external-16:](https://www.percona.com/doc/percona-repo-config/installing.html).
+    * Install `percona-release`.
+       
+        --8<-- "percona-release-apt.md"
 
     * Enable the repository:
 
@@ -111,7 +114,7 @@ Run the following commands on `node1`, `node2` and `node3`:
     
     ```{.bash data-prompt="$"}
     $ sudo systemctl stop {etcd,patroni,postgresql}
-    $ systemctl disable {etcd,patroni,postgresql}
+    $ sudo systemctl disable {etcd,patroni,postgresql}
     ```
 
 5. Even though Patroni can use an existing Postgres installation, remove the data directory to force it to initialize a new Postgres cluster instance.
@@ -227,7 +230,7 @@ The `etcd` cluster is first started in one node and then the subsequent nodes ar
 2. On `node3`, create the configuration file. You can edit the sample configuration file `/etc/etcd/etcd.conf.yaml` or create your own one. Replace the node names and IP addresses with the actual names and IP addresses of your nodes.
 
     ```yaml title="/etc/etcd/etcd.conf.yaml"
-    name: 'node1'
+    name: 'node3'
     initial-cluster-token: PostgreSQL_HA_Cluster_1
     initial-cluster-state: existing
     initial-cluster: node1=http://10.104.0.1:2380,node2=http://10.104.0.2:2380,node3=http://10.104.0.3:2380

@@ -176,10 +176,12 @@ nav:
           - 'Overview': 'solutions/high-availability.md'
           - 'Architecture': 'solutions/ha-architecture.md'
           - Deployment:
-              - 'Prepare for deployment': 'solutions/ha-prepare.md'
-          - 'Deploying on Debian or Ubuntu': 'solutions/ha-setup-apt.md'
-          - 'Deploying on RHEL or derivatives': 'solutions/ha-setup-yum.md'
-          - solutions/pgbackrest.md
+              - 'Initial setup': 'solutions/ha-init-setup.md'
+              - 'Install the software': 'solutions/ha-install-software.md'
+              - 'Configure etcd': 'solutions/ha-etcd.md'
+              - 'Configure Patroni': 'solutions/ha-patroni.md'
+              - solutions/pgbackrest.md
+              - 'Configure HAProxy': 'solutions/ha-haproxy.md'
           - solutions/ha-test.md
       - Backup and disaster recovery:
           - 'Overview': 'solutions/backup-recovery.md'
