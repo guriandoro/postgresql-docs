@@ -19,10 +19,10 @@ Depending on what operating system you are using, you may need to enable or disa
 
 === "RHEL8/Oracle Linux 8/Rocky Linux 8"
 
-    Disable the ``postgresql``  and ``llvm-toolset``modules:    
+    Disable the ``postgresql`` modules:    
 
     ```{.bash data-prompt="$"}
-    $ sudo dnf module disable postgresql llvm-toolset
+    $ sudo dnf module disable postgresql
     ```
 
 ### For `percona-postgresql{{pgversion}}-devel` package
