@@ -19,7 +19,7 @@ Depending on what operating system you are using, you may need to enable or disa
 
 === "RHEL8/Oracle Linux 8/Rocky Linux 8"
 
-    Disable the ``postgresql`` modules:    
+    Disable the ``postgresql`` module:    
 
     ```{.bash data-prompt="$"}
     $ sudo dnf module disable postgresql
