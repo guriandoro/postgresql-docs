@@ -39,7 +39,6 @@ You may need to install the `percona-postgresql{{pgversion}}-devel` package when
 
     ```{.bash data-prompt="$"}
     $ sudo dnf install dnf-plugins-core
-    $ sudo dnf module enable llvm-toolset
     $ sudo dnf config-manager --set-enabled powertools
     ```
 
@@ -53,7 +52,6 @@ You may need to install the `percona-postgresql{{pgversion}}-devel` package when
 
     ```{.bash data-prompt="$"}
     $ sudo dnf install dnf-plugins-core
-    $ sudo dnf module enable llvm-toolset
     $ sudo dnf config-manager --set-enabled crb
     $ sudo dnf install perl-IPC-Run -y
     ```
@@ -111,13 +109,7 @@ For Red Hat Enterprise Linux 8 and derivatives, replace the operating system ver
         $ sudo yum install epel-release
         ```
 
-    2. Enable the `llvm-toolset dnf` module
-
-          ```{.bash data-prompt="$"}
-          $ sudo dnf module enable llvm-toolset
-          ```
-
-    3. Enable the codeready builder repository to resolve dependencies conflict. 
+    2. Enable the codeready builder repository to resolve dependencies conflict. 
 
         ```{.bash data-prompt="$"}
         $ sudo dnf config-manager --set-enabled codeready-builder-for-rhel-9-x86_64-rpms
@@ -134,13 +126,7 @@ For Red Hat Enterprise Linux 8 and derivatives, replace the operating system ver
         $ sudo yum install epel-release
         ```
 
-    2. Enable the `llvm-toolset dnf` module
-
-        ```{.bash data-prompt="$"}
-        $ sudo dnf module enable llvm-toolset
-        ```
-
-    3. Enable the codeready builder repository to resolve dependencies conflict.
+    2. Enable the codeready builder repository to resolve dependencies conflict.
 
         ```{.bash data-prompt="$"}
         $ sudo dnf install dnf-plugins-core
@@ -158,13 +144,7 @@ For Red Hat Enterprise Linux 8 and derivatives, replace the operating system ver
         $ sudo yum install epel-release
         ```
 
-    2. Enable the `llvm-toolset dnf` module
-
-        ```{.bash data-prompt="$"}
-        $ sudo dnf module enable llvm-toolset
-        ```
-
-    3. Enable the codeready builder repository to resolve dependencies conflict.
+    2. Enable the codeready builder repository to resolve dependencies conflict.
 
         ```{.bash data-prompt="$"}
         $ sudo dnf config-manager --set-enabled ol9_codeready_builder
