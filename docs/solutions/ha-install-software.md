@@ -33,7 +33,7 @@ Run the following commands as root or with `sudo` privileges.
 
         --8<-- "percona-release-yum.md"
     
-    3. 3. Enable the repository
+    3. Enable the repository
 
         ```{.bash data-prompt="$"}
         $ sudo percona-release setup ppg{{pgversion}}
